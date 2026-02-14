@@ -37,7 +37,6 @@
         </plugins>
     </build>
 
-    <!-- 🔽 ADD THIS BLOCK FOR NEXUS -->
     <distributionManagement>
         <repository>
             <id>nexus</id>
