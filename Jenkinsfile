@@ -8,8 +8,6 @@ pipeline {
 
     environment {
         SONAR_PROJECT_KEY = 'hello-java'
-
-        // Nexus Docker Registry (NodePort)
         NEXUS_DOCKER_REGISTRY = '15.206.206.26:32082'
         IMAGE_NAME = 'hello-java'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -17,14 +15,12 @@ pipeline {
 
     stages {
 
-        /* ---------- 1. CHECKOUT ---------- */
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        /* ---------- 2. SONARQUBE ---------- */
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube-server') {
@@ -32,18 +28,17 @@ pipeline {
                         credentialsId: 'sonar-token',
                         variable: 'SONAR_TOKEN'
                     )]) {
-                        sh '''
+                        sh """
                             mvn clean verify sonar:sonar \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.projectName=${SONAR_PROJECT_KEY} \
-                            -Dsonar.login=$SONAR_TOKEN
-                        '''
+                            -Dsonar.login=${SONAR_TOKEN}
+                        """
                     }
                 }
             }
         }
 
-        /* ---------- 3. BUILD ARTIFACT ---------- */
         stage('Build & Generate Artifact') {
             steps {
                 sh 'mvn clean package -DskipTests'
@@ -51,7 +46,6 @@ pipeline {
             }
         }
 
-        /* ---------- 4. STORE ARTIFACT IN NEXUS (MAVEN) ---------- */
         stage('Upload Artifact to Nexus (Maven)') {
             steps {
                 withCredentials([usernamePassword(
@@ -60,5 +54,44 @@ pipeline {
                     passwordVariable: 'NEXUS_PASS'
                 )]) {
                     configFileProvider([
-                        c
+                        configFile(
+                            fileId: 'maven-settings',
+                            variable: 'MAVEN_SETTINGS'
+                        )
+                    ]) {
+                        sh 'mvn deploy -DskipTests -s $MAVEN_SETTINGS'
+                    }
+                }
+            }
+        }
+
+        stage('Build & Push Docker Image') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        docker build -t ${NEXUS_DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
+                        echo ${DOCKER_PASS} | docker login ${NEXUS_DOCKER_REGISTRY} \
+                          -u ${DOCKER_USER} --password-stdin
+                        docker push ${NEXUS_DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline executed successfully'
+        }
+        failure {
+            echo 'Pipeline failed'
+        }
+    }
+}
 
