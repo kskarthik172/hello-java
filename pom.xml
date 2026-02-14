@@ -38,11 +38,10 @@
     </build>
 
     <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <url>http://15.206.206.26:32081/repository/maven-releases/</url>
-        </repository>
+    <snapshotRepository>
+        <id>nexus</id>
+        <url>http://15.206.206.26:32081/repository/maven-snapshots/</url>
+    </snapshotRepository>
     </distributionManagement>
-
 </project>
 
