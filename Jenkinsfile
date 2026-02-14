@@ -17,11 +17,17 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube-server') {
-                    sh '''
-                        mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=hello-java \
-                        -Dsonar.projectName=hello-java
-                    '''
+                    withCredentials([string(
+                        credentialsId: 'sonar-token',
+                        variable: 'SONAR_TOKEN'
+                    )]) {
+                        sh '''
+                            mvn clean verify sonar:sonar \
+                            -Dsonar.projectKey=hello-java \
+                            -Dsonar.projectName=hello-java \
+                            -Dsonar.login=$SONAR_TOKEN
+                        '''
+                    }
                 }
             }
         }
@@ -46,9 +52,7 @@ pipeline {
                             variable: 'MAVEN_SETTINGS'
                         )
                     ]) {
-                        sh '''
-                            mvn deploy -DskipTests -s $MAVEN_SETTINGS
-                        '''
+                        sh 'mvn deploy -DskipTests -s $MAVEN_SETTINGS'
                     }
                 }
             }
