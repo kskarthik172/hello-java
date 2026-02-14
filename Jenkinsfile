@@ -7,7 +7,6 @@ pipeline {
     }
 
     environment {
-        // Sonar
         SONAR_PROJECT_KEY = 'hello-java'
 
         // Nexus Docker Registry (NodePort)
@@ -61,43 +60,5 @@ pipeline {
                     passwordVariable: 'NEXUS_PASS'
                 )]) {
                     configFileProvider([
-                        configFile(
-                            fileId: 'maven-settings',
-                            variable: 'MAVEN_SETTINGS'
-                        )
-                    ]) {
-                        sh 'mvn deploy -DskipTests -s $MAVEN_SETTINGS'
-                    }
-                }
-            }
-        }
-
-        /* ---------- 5. BUILD & PUSH DOCKER IMAGE TO NEXUS ---------- */
-        stage('Build & Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'nexus-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        docker build -t ${NEXUS_DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
-                        echo $DOCKER_PASS | docker login ${NEXUS_DOCKER_REGISTRY} \
-                          -u $DOCKER_USER --password-stdin
-                        docker push ${NEXUS_DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline executed successfully'
-        }
-        failure {
-            echo 'Pipeline failed'
-        }
-    }
-}
+                        c
 
