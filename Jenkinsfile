@@ -7,7 +7,10 @@ pipeline {
     }
 
     environment {
+        // Sonar
         SONAR_PROJECT_KEY = 'hello-java'
+
+        // Nexus Docker Registry (NodePort)
         NEXUS_DOCKER_REGISTRY = '15.206.206.26:32082'
         IMAGE_NAME = 'hello-java'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -15,12 +18,14 @@ pipeline {
 
     stages {
 
+        /* ---------- 1. CHECKOUT ---------- */
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
+        /* ---------- 2. SONARQUBE ANALYSIS ---------- */
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube-server') {
@@ -39,6 +44,7 @@ pipeline {
             }
         }
 
+        /* ---------- 3. BUILD ARTIFACT ---------- */
         stage('Build & Generate Artifact') {
             steps {
                 sh 'mvn clean package -DskipTests'
@@ -46,6 +52,7 @@ pipeline {
             }
         }
 
+        /* ---------- 4. UPLOAD ARTIFACT TO NEXUS (MAVEN) ---------- */
         stage('Upload Artifact to Nexus (Maven)') {
             steps {
                 withCredentials([usernamePassword(
@@ -65,8 +72,10 @@ pipeline {
             }
         }
 
+        /* ---------- 5. BUILD & PUSH DOCKER IMAGE ---------- */
         stage('Build & Push Docker Image') {
             steps {
+                // Rebuild to ensure jar exists for Docker
                 sh 'mvn clean package -DskipTests'
 
                 withCredentials([usernamePassword(
