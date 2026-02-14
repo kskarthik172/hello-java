@@ -29,16 +29,39 @@ pipeline {
         stage('Build & Generate Artifact') {
             steps {
                 sh 'mvn clean package'
+                archiveArtifacts artifacts: 'target/*.jar'
+            }
+        }
+
+        stage('Upload Artifact to Nexus') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus-creds',
+                    usernameVariable: 'NEXUS_USER',
+                    passwordVariable: 'NEXUS_PASS'
+                )]) {
+                    configFileProvider([
+                        configFile(
+                            fileId: 'maven-settings',
+                            variable: 'MAVEN_SETTINGS'
+                        )
+                    ]) {
+                        sh '''
+                            mvn deploy -DskipTests -s $MAVEN_SETTINGS
+                        '''
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            archiveArtifacts artifacts: 'target/*.jar'
             echo 'Pipeline executed successfully'
+        }
+        failure {
+            echo 'Pipeline failed'
         }
     }
 }
-
 

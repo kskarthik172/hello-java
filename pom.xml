@@ -37,5 +37,13 @@
         </plugins>
     </build>
 
+    <!-- 🔽 ADD THIS BLOCK FOR NEXUS -->
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <url>http://nexus-service.nexus:8081/repository/maven-releases/</url>
+        </repository>
+    </distributionManagement>
+
 </project>
 
