@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         SONAR_PROJECT_KEY = 'hello-java'
-        NEXUS_DOCKER_REGISTRY = '13.202.73.40:32082'
+        NEXUS_DOCKER_REGISTRY = '172.31.27.6:32082'
         IMAGE_NAME = 'hello-java'
         IMAGE_TAG = "${BUILD_NUMBER}"
 
