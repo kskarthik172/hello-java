@@ -11,6 +11,10 @@ pipeline {
         NEXUS_DOCKER_REGISTRY = '15.206.206.26:32082'
         IMAGE_NAME = 'hello-java'
         IMAGE_TAG = "${BUILD_NUMBER}"
+
+        AWS_REGION = 'ap-south-1'
+        AWS_ACCOUNT_ID = '420838436623'
+        ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
     }
 
     stages {
@@ -65,7 +69,7 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build & Push Docker Image to Nexus') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'nexus-creds',
@@ -81,15 +85,32 @@ pipeline {
                 }
             }
         }
+
+        stage('Tag & Push Image to ECR') {
+            steps {
+                sh '''
+                    echo "Logging into AWS ECR..."
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS \
+                    --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    echo "Tagging image for ECR..."
+                    docker tag ${NEXUS_DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+                    ${ECR_REPO}:${IMAGE_TAG}
+
+                    echo "Pushing image to ECR..."
+                    docker push ${ECR_REPO}:${IMAGE_TAG}
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo "🎉 CI Pipeline completed successfully"
+            echo "🎉 CI Pipeline completed successfully and image pushed to ECR"
         }
         failure {
             echo "❌ Pipeline failed"
         }
     }
 }
-
